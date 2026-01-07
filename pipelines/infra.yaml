@@ -1,0 +1,94 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  terraformVersion: '1.5.0'
+  tfDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+
+stages:
+  - stage: Validate
+    jobs:
+      - job: TerraformValidate
+        steps:
+          - task: TerraformInstaller@0
+            inputs:
+              terraformVersion: $(terraformVersion)
+          
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: $(tfDirectory)
+              backendServiceArm: 'ado_sc'
+              backendAzureRmResourceGroupName: 'YOUR_RG'
+              backendAzureRmStorageAccountName: 'YOUR_STORAGE'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'terraform.tfstate'
+          
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'validate'
+              workingDirectory: $(tfDirectory)
+
+  - stage: Plan
+    dependsOn: Validate
+    jobs:
+      - job: TerraformPlan
+        steps:
+          - task: TerraformInstaller@0
+            inputs:
+              terraformVersion: $(terraformVersion)
+          
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: $(tfDirectory)
+              backendServiceArm: 'ado_sc'
+              backendAzureRmResourceGroupName: 'YOUR_RG'
+              backendAzureRmStorageAccountName: 'YOUR_STORAGE'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'terraform.tfstate'
+          
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              workingDirectory: $(tfDirectory)
+              environmentServiceNameAzureRM: 'ado_sc'
+
+  - stage: Apply
+    dependsOn: Plan
+    condition: succeeded()
+    jobs:
+      - deployment: TerraformApply
+        environment: 'Production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: TerraformInstaller@0
+                  inputs:
+                    terraformVersion: $(terraformVersion)
+                
+                - task: TerraformTaskV4@4
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'init'
+                    workingDirectory: $(tfDirectory)
+                    backendServiceArm: 'ado_sc'
+                    backendAzureRmResourceGroupName: 'YOUR_RG'
+                    backendAzureRmStorageAccountName: 'YOUR_STORAGE'
+                    backendAzureRmContainerName: 'tfstate'
+                    backendAzureRmKey: 'terraform.tfstate'
+                
+                - task: TerraformTaskV4@4
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'apply'
+                    workingDirectory: $(tfDirectory)
+                    environmentServiceNameAzureRM: 'ado_sc'
