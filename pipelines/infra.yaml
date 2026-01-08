@@ -24,6 +24,7 @@ stages:
               terraformVersion: $(terraformVersion)
           
           - task: TerraformCLI@1
+            displayName: 'Terraform Init'
             inputs:
               provider: 'azurerm'
               command: 'init'
@@ -34,12 +35,15 @@ stages:
               backendAzureRmStorageAccountName: '$(azStorageAccount)'
               backendAzureRmContainerName: '$(azContainerName)'
               backendAzureRmKey: '$(tfStateFile)'
+              runAzLogin: true
           
           - task: TerraformCLI@1
+            displayName: 'Terraform Validate'
             inputs:
               provider: 'azurerm'
               command: 'validate'
               workingDirectory: $(tfDirectory)
+              runAzLogin: true
 
   - stage: Plan
     dependsOn: Validate
@@ -50,24 +54,26 @@ stages:
             inputs:
               terraformVersion: $(terraformVersion)
           
-          - task: TerraformCLI@1
-            inputs:
-              provider: 'azurerm'
-              command: 'init'
-              workingDirectory: $(tfDirectory)
-              backendServiceArm: $(azServiceConnection)
-              backendAzureRmTenantId: $(azTenantId)
-              backendAzureRmResourceGroupName: $(azResourceGroup)
-              backendAzureRmStorageAccountName: $(azStorageAccount)
-              backendAzureRmContainerName: $(azContainerName)
-              backendAzureRmKey: $(tfStateFile)
+          # - task: TerraformCLI@1
+          #   inputs:
+          #     provider: 'azurerm'
+          #     command: 'init'
+          #     workingDirectory: $(tfDirectory)
+          #     backendServiceArm: $(azServiceConnection)
+          #     backendAzureRmTenantId: $(azTenantId)
+          #     backendAzureRmResourceGroupName: $(azResourceGroup)
+          #     backendAzureRmStorageAccountName: $(azStorageAccount)
+          #     backendAzureRmContainerName: $(azContainerName)
+          #     backendAzureRmKey: $(tfStateFile)
           
           - task: TerraformCLI@1
+            displayName: 'Terraform Plan'
             inputs:
               provider: 'azurerm'
               command: 'plan'
               workingDirectory: $(tfDirectory)
               environmentServiceName: $(azServiceConnection)
+              runAzLogin: true
 
   # - stage: Apply
   #   dependsOn: Plan
