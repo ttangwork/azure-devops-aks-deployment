@@ -24,10 +24,12 @@ stages:
               terraformVersion: $(terraformVersion)
           
           - task: TerraformCLI@1
+            displayName: 'Terraform Init'
             inputs:
               provider: 'azurerm'
               command: 'init'
               workingDirectory: $(tfDirectory)
+              environmentServiceNameAzureRM: $(azServiceConnection)
               backendServiceArm: $(azServiceConnection)
               backendAzureRmTenantId: $(azTenantId)
               backendAzureRmResourceGroupName: '$(azResourceGroup)'
@@ -36,6 +38,7 @@ stages:
               backendAzureRmKey: '$(tfStateFile)'
           
           - task: TerraformCLI@1
+            displayName: 'Terraform Validate'
             inputs:
               provider: 'azurerm'
               command: 'validate'
@@ -51,10 +54,12 @@ stages:
               terraformVersion: $(terraformVersion)
           
           - task: TerraformCLI@1
+            displayName: 'Terraform Init'
             inputs:
               provider: 'azurerm'
               command: 'init'
               workingDirectory: $(tfDirectory)
+              environmentServiceNameAzureRM: $(azServiceConnection)
               backendServiceArm: $(azServiceConnection)
               backendAzureRmTenantId: $(azTenantId)
               backendAzureRmResourceGroupName: $(azResourceGroup)
@@ -63,6 +68,7 @@ stages:
               backendAzureRmKey: $(tfStateFile)
           
           - task: TerraformCLI@1
+            displayName: 'Terraform Plan'
             inputs:
               provider: 'azurerm'
               command: 'plan'
