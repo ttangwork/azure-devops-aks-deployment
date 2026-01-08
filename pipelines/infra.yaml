@@ -5,6 +5,7 @@ trigger:
   paths:
     include:
     - 'terraform/**'
+    - 'pipelines/infra.yaml'
 
 pool:
   vmImage: 'ubuntu-latest'
