@@ -28,7 +28,7 @@ stages:
               provider: 'azurerm'
               command: 'init'
               workingDirectory: $(tfDirectory)
-              backendServiceArm: ${azServiceConnection}
+              backendServiceArm: $(azServiceConnection)
               backendAzureRmTenantId: $(azTenantId)
               backendAzureRmResourceGroupName: '$(azResourceGroup)'
               backendAzureRmStorageAccountName: '$(azStorageAccount)'
