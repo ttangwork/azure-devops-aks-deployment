@@ -12,6 +12,7 @@ pool:
 variables:
   terraformVersion: '1.14.3'
   workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+  azServiceConnection: 'ado_sc'
   backendResourceGroup: 'manual'
   backendStorageAccount: 'azuredevopsaks'
   backendContainer: 'tfstate'
