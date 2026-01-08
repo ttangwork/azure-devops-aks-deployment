@@ -1,109 +1,135 @@
 trigger:
-  - main
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - 'terraform/**'
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
   terraformVersion: '1.14.3'
-  tfDirectory: '$(System.DefaultWorkingDirectory)/terraform'
-  azTenantId: 'd518e762-52b9-4009-9cb3-b09b9f5163a6'
-  azServiceConnection: 'ado_sc'
-  azStorageAccount: 'azuredevopsaks'
-  azResourceGroup: 'manual'
-  azContainerName: 'tfstate'
-  tfStateFile: 'terraform.tfstate'
+  workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+  backendResourceGroup: 'manual'
+  backendStorageAccount: 'azuredevopsaks'
+  backendContainer: 'tfstate'
+  backendKey: 'terraform.tfstate'
 
 stages:
-  - stage: Validate
-    jobs:
-      - job: TerraformValidate
-        steps:
-          - task: TerraformInstaller@1
-            inputs:
-              terraformVersion: $(terraformVersion)
+- stage: Validate
+  jobs:
+  - job: TerraformValidate
+    steps:
+    - checkout: self
+    
+    - task: TerraformInstaller@1
+      displayName: 'Install Terraform'
+      inputs:
+        terraformVersion: $(terraformVersion)
+    
+    - task: AzureCLI@2
+      displayName: 'Terraform Init'
+      inputs:
+        azureSubscription: $(azServiceConnection)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        workingDirectory: $(workingDirectory)
+        addSpnToEnvironment: true
+        inlineScript: |
+          export ARM_CLIENT_ID=$servicePrincipalId
+          export ARM_CLIENT_SECRET=$servicePrincipalKey
+          export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+          export ARM_TENANT_ID=$tenantId
           
-          - task: TerraformCLI@1
-            displayName: 'Terraform Init'
-            inputs:
-              provider: 'azurerm'
-              command: 'init'
-              workingDirectory: $(tfDirectory)
-              environmentServiceNameAzureRM: $(azServiceConnection)
-              backendServiceArm: $(azServiceConnection)
-              backendAzureRmTenantId: $(azTenantId)
-              backendAzureRmResourceGroupName: '$(azResourceGroup)'
-              backendAzureRmStorageAccountName: '$(azStorageAccount)'
-              backendAzureRmContainerName: '$(azContainerName)'
-              backendAzureRmKey: '$(tfStateFile)'
+          terraform init \
+            -backend-config="resource_group_name=$(backendResourceGroup)" \
+            -backend-config="storage_account_name=$(backendStorageAccount)" \
+            -backend-config="container_name=$(backendContainer)" \
+            -backend-config="key=$(backendKey)"
+    
+    - task: AzureCLI@2
+      displayName: 'Terraform Validate'
+      inputs:
+        azureSubscription: $(azServiceConnection)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        workingDirectory: $(workingDirectory)
+        addSpnToEnvironment: true
+        inlineScript: |
+          export ARM_CLIENT_ID=$servicePrincipalId
+          export ARM_CLIENT_SECRET=$servicePrincipalKey
+          export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+          export ARM_TENANT_ID=$tenantId
           
-          - task: TerraformCLI@1
-            displayName: 'Terraform Validate'
-            inputs:
-              provider: 'azurerm'
-              command: 'validate'
-              workingDirectory: $(tfDirectory)
+          terraform validate
+    
+    - task: AzureCLI@2
+      displayName: 'Terraform Plan'
+      inputs:
+        azureSubscription: $(azServiceConnection)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        workingDirectory: $(workingDirectory)
+        addSpnToEnvironment: true
+        inlineScript: |
+          export ARM_CLIENT_ID=$servicePrincipalId
+          export ARM_CLIENT_SECRET=$servicePrincipalKey
+          export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+          export ARM_TENANT_ID=$tenantId
+          
+          terraform plan -out=tfplan
 
-  - stage: Plan
-    dependsOn: Validate
-    jobs:
-      - job: TerraformPlan
-        steps:
-          - task: TerraformInstaller@1
-            inputs:
-              terraformVersion: $(terraformVersion)
+# - stage: Deploy
+#   dependsOn: Validate
+#   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+#   jobs:
+#   - deployment: TerraformApply
+#     environment: 'dev'
+#     strategy:
+#       runOnce:
+#         deploy:
+#           steps:
+#           - checkout: self
           
-          - task: TerraformCLI@1
-            displayName: 'Terraform Init'
-            inputs:
-              provider: 'azurerm'
-              command: 'init'
-              workingDirectory: $(tfDirectory)
-              environmentServiceNameAzureRM: $(azServiceConnection)
-              backendServiceArm: $(azServiceConnection)
-              backendAzureRmTenantId: $(azTenantId)
-              backendAzureRmResourceGroupName: $(azResourceGroup)
-              backendAzureRmStorageAccountName: $(azStorageAccount)
-              backendAzureRmContainerName: $(azContainerName)
-              backendAzureRmKey: $(tfStateFile)
+#           - task: TerraformInstaller@1
+#             displayName: 'Install Terraform'
+#             inputs:
+#               terraformVersion: $(terraformVersion)
           
-          - task: TerraformCLI@1
-            displayName: 'Terraform Plan'
-            inputs:
-              provider: 'azurerm'
-              command: 'plan'
-              workingDirectory: $(tfDirectory)
-              environmentServiceName: $(azServiceConnection)
-
-  # - stage: Apply
-  #   dependsOn: Plan
-  #   condition: succeeded()
-  #   jobs:
-  #     - deployment: TerraformApply
-  #       environment: 'dev'
-  #       strategy:
-  #         runOnce:
-  #           deploy:
-  #             steps:
-  #               - task: TerraformInstaller@1
-  #                 inputs:
-  #                   terraformVersion: $(terraformVersion)
+#           - task: AzureCLI@2
+#             displayName: 'Terraform Init'
+#             inputs:
+#               azureSubscription: $(azServiceConnection)
+#               scriptType: 'bash'
+#               scriptLocation: 'inlineScript'
+#               workingDirectory: $(workingDirectory)
+#               addSpnToEnvironment: true
+#               inlineScript: |
+#                 export ARM_CLIENT_ID=$servicePrincipalId
+#                 export ARM_CLIENT_SECRET=$servicePrincipalKey
+#                 export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+#                 export ARM_TENANT_ID=$tenantId
                 
-  #               - task: TerraformCLI@1
-  #                 inputs:
-  #                   provider: 'azurerm'
-  #                   command: 'init'
-  #                   workingDirectory: $(tfDirectory)
-  #                   backendServiceArm: 'ado_sc'
-  #                   backendAzureRmTenantId: 'd518e762-52b9-4009-9cb3-b09b9f5163a6'
-  #                   backendAzureRmResourceGroupName: 'manual'
-  #                   backendAzureRmStorageAccountName: 'azuredevopsaks'
-  #                   backendAzureRmContainerName: 'tfstate'
-  #                   backendAzureRmKey: 'terraform.tfstate'
+#                 terraform init \
+#                   -backend-config="resource_group_name=$(backendResourceGroup)" \
+#                   -backend-config="storage_account_name=$(backendStorageAccount)" \
+#                   -backend-config="container_name=$(backendContainer)" \
+#                   -backend-config="key=$(backendKey)"
+          
+#           - task: AzureCLI@2
+#             displayName: 'Terraform Apply'
+#             inputs:
+#               azureSubscription: $(azServiceConnection)
+#               scriptType: 'bash'
+#               scriptLocation: 'inlineScript'
+#               workingDirectory: $(workingDirectory)
+#               addSpnToEnvironment: true
+#               inlineScript: |
+#                 export ARM_CLIENT_ID=$servicePrincipalId
+#                 export ARM_CLIENT_SECRET=$servicePrincipalKey
+#                 export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+#                 export ARM_TENANT_ID=$tenantId
                 
-  #               - task: TerraformCLI@1
-  #                 inputs:
-  #                   provider: 'azurerm'
-  #                   command: 'apply'
-  #                   workingDirectory: $(tfDirectory)
-  #                   environmentServiceName: 'ado_sc'
+#                 terraform apply -auto-approve
