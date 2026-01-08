@@ -61,34 +61,34 @@ stages:
               workingDirectory: $(tfDirectory)
               environmentServiceName: 'ado_sc'
 
-  - stage: Apply
-    dependsOn: Plan
-    condition: succeeded()
-    jobs:
-      - deployment: TerraformApply
-        environment: 'dev'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: TerraformInstaller@0
-                  inputs:
-                    terraformVersion: $(terraformVersion)
+  # - stage: Apply
+  #   dependsOn: Plan
+  #   condition: succeeded()
+  #   jobs:
+  #     - deployment: TerraformApply
+  #       environment: 'dev'
+  #       strategy:
+  #         runOnce:
+  #           deploy:
+  #             steps:
+  #               - task: TerraformInstaller@0
+  #                 inputs:
+  #                   terraformVersion: $(terraformVersion)
                 
-                - task: TerraformCLI@1
-                  inputs:
-                    provider: 'azurerm'
-                    command: 'init'
-                    workingDirectory: $(tfDirectory)
-                    backendServiceArm: 'ado_sc'
-                    backendAzureRmResourceGroupName: 'manual'
-                    backendAzureRmStorageAccountName: 'azuredevopsaks'
-                    backendAzureRmContainerName: 'tfstate'
-                    backendAzureRmKey: 'terraform.tfstate'
+  #               - task: TerraformCLI@1
+  #                 inputs:
+  #                   provider: 'azurerm'
+  #                   command: 'init'
+  #                   workingDirectory: $(tfDirectory)
+  #                   backendServiceArm: 'ado_sc'
+  #                   backendAzureRmResourceGroupName: 'manual'
+  #                   backendAzureRmStorageAccountName: 'azuredevopsaks'
+  #                   backendAzureRmContainerName: 'tfstate'
+  #                   backendAzureRmKey: 'terraform.tfstate'
                 
-                - task: TerraformCLI@1
-                  inputs:
-                    provider: 'azurerm'
-                    command: 'apply'
-                    workingDirectory: $(tfDirectory)
-                    environmentServiceName: 'ado_sc'
+  #               - task: TerraformCLI@1
+  #                 inputs:
+  #                   provider: 'azurerm'
+  #                   command: 'apply'
+  #                   workingDirectory: $(tfDirectory)
+  #                   environmentServiceName: 'ado_sc'
