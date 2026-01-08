@@ -7,6 +7,12 @@ pool:
 variables:
   terraformVersion: '1.14.3'
   tfDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+  azTenantId: 'd518e762-52b9-4009-9cb3-b09b9f5163a6'
+  azServiceConnection: 'ado_sc'
+  azStorageAccount: 'azuredevopsaks'
+  azResourceGroup: 'manual'
+  azContainerName: 'tfstate'
+  tfStateFile: 'terraform.tfstate'
 
 stages:
   - stage: Validate
@@ -22,11 +28,12 @@ stages:
               provider: 'azurerm'
               command: 'init'
               workingDirectory: $(tfDirectory)
-              backendServiceArm: 'ado_sc'
-              backendAzureRmResourceGroupName: 'manual'
-              backendAzureRmStorageAccountName: 'azuredevopsaks'
-              backendAzureRmContainerName: 'tfstate'
-              backendAzureRmKey: 'terraform.tfstate'
+              backendServiceArm: ${azServiceConnection}
+              backendAzureRmTenantId: $(azTenantId)
+              backendAzureRmResourceGroupName: '$(azResourceGroup)'
+              backendAzureRmStorageAccountName: '$(azStorageAccount)'
+              backendAzureRmContainerName: '$(azContainerName)'
+              backendAzureRmKey: '$(tfStateFile)'
           
           - task: TerraformCLI@1
             inputs:
@@ -39,7 +46,7 @@ stages:
     jobs:
       - job: TerraformPlan
         steps:
-          - task: TerraformInstaller@0
+          - task: TerraformInstaller@1
             inputs:
               terraformVersion: $(terraformVersion)
           
@@ -48,18 +55,19 @@ stages:
               provider: 'azurerm'
               command: 'init'
               workingDirectory: $(tfDirectory)
-              backendServiceArm: 'ado_sc'
-              backendAzureRmResourceGroupName: 'manual'
-              backendAzureRmStorageAccountName: 'azuredevopsaks'
-              backendAzureRmContainerName: 'tfstate'
-              backendAzureRmKey: 'terraform.tfstate'
+              backendServiceArm: $(azServiceConnection)
+              backendAzureRmTenantId: $(azTenantId)
+              backendAzureRmResourceGroupName: $(azResourceGroup)
+              backendAzureRmStorageAccountName: $(azStorageAccount)
+              backendAzureRmContainerName: $(azContainerName)
+              backendAzureRmKey: $(tfStateFile)
           
           - task: TerraformCLI@1
             inputs:
               provider: 'azurerm'
               command: 'plan'
               workingDirectory: $(tfDirectory)
-              environmentServiceName: 'ado_sc'
+              environmentServiceName: $(azServiceConnection)
 
   # - stage: Apply
   #   dependsOn: Plan
@@ -71,7 +79,7 @@ stages:
   #         runOnce:
   #           deploy:
   #             steps:
-  #               - task: TerraformInstaller@0
+  #               - task: TerraformInstaller@1
   #                 inputs:
   #                   terraformVersion: $(terraformVersion)
                 
@@ -81,6 +89,7 @@ stages:
   #                   command: 'init'
   #                   workingDirectory: $(tfDirectory)
   #                   backendServiceArm: 'ado_sc'
+  #                   backendAzureRmTenantId: 'd518e762-52b9-4009-9cb3-b09b9f5163a6'
   #                   backendAzureRmResourceGroupName: 'manual'
   #                   backendAzureRmStorageAccountName: 'azuredevopsaks'
   #                   backendAzureRmContainerName: 'tfstate'
