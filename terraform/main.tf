@@ -12,7 +12,7 @@ resource "azurerm_kubernetes_cluster" "dev_aks_cluster" {
   default_node_pool {
     name       = "default"
     node_count = 1
-    vm_size    = "Standard_A4_v2" # https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/general-purpose/av2-series?tabs=sizebasic
+    vm_size    = "Standard_D2_v4"
   }
 
   identity {
